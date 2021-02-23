@@ -18,7 +18,7 @@
     </parent>
     <groupId>io.github.fykidwai</groupId>
     <artifactId>fyk-beer-works-bom</artifactId>
-    <version>1.6-SNAPSHOT</version>
+    <version>1.5-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Parent Project for FYK Beer Works Projects</description>
     <name>fyk-beer-works-bom</name>
@@ -40,7 +40,7 @@
         <url>https://github.com/fykidwai/fyk-beer-works-bom</url>
         <connection>scm:git:https://github.com/fykidwai/fyk-beer-works-bom</connection>
         <developerConnection>scm:git:https://fykidwai@github.com/fykidwai/fyk-beer-works-bom</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v1.3</tag>
     </scm>
     <issueManagement>
         <url>https://github.com/fykidwai/fyk-beer-works-bom/issues</url>
@@ -63,13 +63,6 @@
         <awaitility.version>3.1.6</awaitility.version>
         <spock.version>1.3-groovy-2.5</spock.version>
         <project.scm.id>github</project.scm.id>
-        <project.testresult.directory>${project.build.directory}/test-results</project.testresult.directory>
-        <jacoco.utReportFolder>${project.build.directory}/jacoco/test</jacoco.utReportFolder>
-        <jacoco.utReportFile>${jacoco.utReportFolder}/test.exec</jacoco.utReportFile>
-        <jacoco.itReportFolder>${project.build.directory}/jacoco/integrationTest</jacoco.itReportFolder>
-        <jacoco.itReportFile>${jacoco.itReportFolder}/integrationTest.exec</jacoco.itReportFile>
-        <junit.utReportFolder>${project.testresult.directory}/test</junit.utReportFolder>
-        <junit.itReportFolder>${project.testresult.directory}/integrationTest</junit.itReportFolder>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -198,43 +191,14 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <!-- Force alphabetical order to have a reproducible 
-                        build -->
-                    <runOrder>alphabetical</runOrder>
-                    <reportsDirectory>${junit.utReportFolder}</reportsDirectory>
-                    <excludes>
-                        <exclude>**/*IT*</exclude>
-                        <exclude>**/*IntTest*</exclude>
-                    </excludes>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <configuration>
-                    <!-- Due to spring-boot repackage, without adding this 
-                        property test classes are not found See https://github.com/spring-projects/spring-boot/issues/6254 -->
-                    <classesDirectory>${project.build.outputDirectory}</classesDirectory>
-                    <!-- Force alphabetical order to have a reproducible 
-                        build -->
-                    <runOrder>alphabetical</runOrder>
-                    <reportsDirectory>${junit.itReportFolder}</reportsDirectory>
-                    <includes>
-                        <include>**/*IT*</include>
-                        <include>**/*IntTest*</include>
-                    </includes>
-                </configuration>
                 <executions>
                     <execution>
-                        <id>integration-test</id>
                         <goals>
                             <goal>integration-test</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>verify</id>
-                        <goals>
                             <goal>verify</goal>
                         </goals>
                     </execution>
@@ -249,52 +213,70 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.6</version>
                 <executions>
+                    <!-- Prepares the property pointing to the JaCoCo runtime 
+                        agent which is passed as VM argument when the Maven Surefire plugin is executed. -->
                     <execution>
-                        <id>pre-unit-tests</id>
+                        <id>default-prepare-agent</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Sets the path to the file which contains 
+                                the execution data. ============ Defaults to ${project.build.directory}/jacoco.exec -->
+                            <!--<destFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</destFile> -->
+                            <!-- Sets the name of the property containing 
+                                the settings for JaCoCo runtime agent. ============= Defaults to "argLine" -->
+                            <!--<propertyName>surefireArgLine</propertyName> -->
+                        </configuration>
+                    </execution>
+                    <!-- Ensures that the code coverage report for unit tests 
+                        is created after unit tests have been run. -->
+                    <execution>
+                        <id>post-unit-test</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Sets the path to the file which contains 
+                                the execution data. ================ Defaults to ${project.build.directory}/jacoco.exec -->
+                            <!--<dataFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</dataFile> -->
+                            <!-- Sets the output directory for the code coverage 
+                                report. ================ Defaults to ${project.reporting.outputDirectory}/jacoco -->
+                            <!--<outputDirectory>${project.reporting.outputDirectory}/jacoco-ut</outputDirectory> -->
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>pre-integration-test</id>
+                        <phase>initialize</phase>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
                         <configuration>
                             <!-- Sets the path to the file which contains 
                                 the execution data. -->
-                            <destFile>${jacoco.utReportFile}</destFile>
+                            <!--<destFile>${project.build.directory}/coverage-reports/jacoco-it.exec</destFile> -->
+                            <!-- Sets the name of the property containing 
+                                the settings for JaCoCo runtime agent. -->
+                            <!--<propertyName>failsafeArgLine</propertyName> -->
                         </configuration>
                     </execution>
-                    <!-- Ensures that the code coverage report for unit tests 
-                        is created after unit tests have been run -->
+                    <!-- Ensures that the code coverage report for integration 
+                        tests after integration tests have been run. -->
                     <execution>
-                        <id>post-unit-test</id>
-                        <phase>test</phase>
+                        <id>post-integration-test</id>
+                        <phase>verify</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>
                         <configuration>
-                            <dataFile>${jacoco.utReportFile}</dataFile>
-                            <outputDirectory>${jacoco.utReportFolder}</outputDirectory>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>pre-integration-tests</id>
-                        <goals>
-                            <goal>prepare-agent-integration</goal>
-                        </goals>
-                        <configuration>
                             <!-- Sets the path to the file which contains 
-                                the execution data. -->
-                            <destFile>${jacoco.itReportFile}</destFile>
-                        </configuration>
-                    </execution>
-                    <!-- Ensures that the code coverage report for integration 
-                        tests is created after integration tests have been run -->
-                    <execution>
-                        <id>post-integration-tests</id>
-                        <phase>post-integration-test</phase>
-                        <goals>
-                            <goal>report-integration</goal>
-                        </goals>
-                        <configuration>
-                            <dataFile>${jacoco.itReportFile}</dataFile>
-                            <outputDirectory>${jacoco.itReportFolder}</outputDirectory>
+                                the execution data. =========== Defaults to ${project.build.directory/jacoco.exec} -->
+                            <!--<dataFile>${project.build.directory}/coverage-reports/jacoco-it.exec</dataFile> -->
+                            <!-- Sets the output directory for the code coverage 
+                                report. =========== Defaults to ${project.reporting.outputDirectory/jacoco} -->
+                            <!--<outputDirectory>${project.reporting.outputDirectory}/jacoco-it</outputDirectory> -->
                         </configuration>
                     </execution>
                 </executions>
